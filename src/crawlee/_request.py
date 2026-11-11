@@ -110,8 +110,7 @@ class UserData(BaseModel, MutableMapping[str, JsonSerializable]):
 
     def __hash__(self) -> int:
         """Return hash based on the model fields."""
-        data = self.model_dump()
-        return hash(tuple(sorted(data.items())))
+        return hash(self.model_dump_json())
 
 
 user_data_adapter = TypeAdapter(UserData)
@@ -320,7 +319,7 @@ class Request(BaseModel):
 
         crawlee_data = CrawleeRequestData(**crawlee_data_dict)
 
-        if crawlee_data:
+        if crawlee_data_dict:
             user_data_dict['__crawlee'] = crawlee_data
 
         request = cls(

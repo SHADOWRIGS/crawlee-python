@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import AsyncIterator
 from logging import getLogger
 from typing import TYPE_CHECKING, Any, ClassVar, TypeVar, overload
 
@@ -12,7 +11,6 @@ from crawlee import service_locator
 from crawlee._types import JsonSerializable  # noqa: TC001
 from crawlee._utils.docs import docs_group
 from crawlee._utils.recoverable_state import RecoverableState
-from crawlee.storage_clients.models import KeyValueStoreMetadata
 
 from ._base import Storage
 from ._utils import validate_storage_name
@@ -24,8 +22,6 @@ if TYPE_CHECKING:
     from crawlee.storage_clients import StorageClient
     from crawlee.storage_clients._base import KeyValueStoreClient
     from crawlee.storage_clients.models import KeyValueStoreMetadata, KeyValueStoreRecordMetadata
-else:
-    from crawlee._utils.recoverable_state import RecoverableState
 
 T = TypeVar('T')
 

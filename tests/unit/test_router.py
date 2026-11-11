@@ -1,12 +1,15 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 from unittest.mock import AsyncMock, Mock
 
 import pytest
 
 from crawlee import Request
+from crawlee._request import RequestState
 from crawlee._types import BasicCrawlingContext
+from crawlee.errors import UserHandlerTimeoutError
 from crawlee.router import Router
 from crawlee.sessions import Session
 
@@ -115,3 +118,64 @@ async def test_router_multi_labelled_handler() -> None:
     await router(MockContext(label='B'))
     mock_handler.assert_called_with('B')
     assert mock_handler.call_count == 2
+
+
+async def test_router_duplicate_default_handler_raises() -> None:
+    router = Router[MockContext]()
+
+    @router.default_handler
+    async def handler_1(_context: MockContext) -> None:
+        pass
+
+    with pytest.raises(RuntimeError, match='default handler is already configured'):
+
+        @router.default_handler
+        async def handler_2(_context: MockContext) -> None:
+            pass
+
+
+async def test_router_duplicate_label_handler_raises() -> None:
+    router = Router[MockContext]()
+
+    @router.handler('A')
+    async def handler_1(_context: MockContext) -> None:
+        pass
+
+    with pytest.raises(RuntimeError, match='handler for label `A` is already registered'):
+
+        @router.handler('A')
+        async def handler_2(_context: MockContext) -> None:
+            pass
+
+
+async def test_router_none_label_goes_to_default() -> None:
+    router = Router[MockContext]()
+    mock_default = Mock()
+
+    @router.default_handler
+    async def default_handler(_context: MockContext) -> None:
+        mock_default()
+
+    await router(MockContext(label=None))
+    mock_default.assert_called_once()
+
+
+async def test_router_timeout_error_wrapping() -> None:
+    router = Router[MockContext]()
+
+    @router.default_handler
+    async def timeout_handler(_context: MockContext) -> None:
+        raise asyncio.TimeoutError('simulated timeout')
+
+    with pytest.raises(UserHandlerTimeoutError):
+        await router(MockContext(label=None))
+
+
+async def test_router_sets_request_state() -> None:
+    router = Router[MockContext]()
+
+    @router.default_handler
+    async def handler(context: MockContext) -> None:
+        assert context.request.state == RequestState.REQUEST_HANDLER
+
+    await router(MockContext(label=None))
